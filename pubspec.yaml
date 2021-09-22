@@ -39,3 +39,6 @@ flutter:
         pluginClass: FlutterUnityWidgetPlugin
       ios:
         pluginClass: FlutterUnityWidgetPlugin
+      windows:
+        dartPluginClass: FlutterUnityWidgetPlugin
+        pluginClass: none
