@@ -39,7 +39,7 @@ class UnityPlayerUtils {
             }
 
             try {
-                Handler(Looper.getMainLooper()).post {
+                Handler(activity.mainLooper).post {
                     if (!reInitialize) {
                         activity.window.setFormat(PixelFormat.RGBA_8888)
                         unityPlayer = UnityPlayer(activity, ule)
