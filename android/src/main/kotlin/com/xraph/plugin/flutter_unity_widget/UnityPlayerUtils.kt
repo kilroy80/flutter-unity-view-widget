@@ -61,10 +61,10 @@ class UnityPlayerUtils {
                         unityPlayer!!.resume()
 
                         // restore window layout
-//                        if (!options.fullscreenEnabled) {
-//                            activity.window.addFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN)
-//                            activity.window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
-//                        }
+                       if (!options.fullscreenEnabled) {
+                           activity.window.addFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN)
+                           activity.window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+                       }
                     }
 
                     isUnityReady = true
