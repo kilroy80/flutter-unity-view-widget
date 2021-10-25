@@ -32,10 +32,10 @@ class UnityView(context: Context) : FrameLayout(context) {
     }
 
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
-        if (player != null) {
-            ev.source = InputDevice.SOURCE_TOUCHSCREEN
-            player!!.injectEvent(ev)
-        }
+//        if (player != null) {
+//            ev.source = InputDevice.SOURCE_TOUCHSCREEN
+//            player!!.injectEvent(ev)
+//        }
         return super.dispatchTouchEvent(ev)
     }
 
