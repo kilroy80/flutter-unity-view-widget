@@ -26,6 +26,11 @@ rootProject.allprojects {
 //        flatDir {
 //            dirs "libs"
 //        }
+
+       // FOR In-House Build
+       flatDir{
+           dirs "${project(':app').projectDir}/libs"
+       }
     }
 }
 
@@ -55,7 +60,8 @@ def lifecycle_version = '2.2.0'
 def annotation_version = '1.1.0'
 
 dependencies {
-    implementation project(':unityLibrary')
+    // implementation project(':unityLibrary')
+    implementation(name: 'unityLibrary-release', ext:'aar')
     implementation(name: 'unity-classes', ext:'jar')
 
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
