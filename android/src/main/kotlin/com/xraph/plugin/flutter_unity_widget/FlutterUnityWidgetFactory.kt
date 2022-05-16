@@ -8,7 +8,6 @@ import io.flutter.plugin.platform.PlatformViewFactory
 
 class FlutterUnityWidgetFactory(
         private val binaryMessenger: BinaryMessenger,
-        private val appContext: Context,
         private var lifecycleProvider: LifecycleProvider
         ) : PlatformViewFactory(StandardMessageCodec.INSTANCE) {
 
@@ -20,10 +19,21 @@ class FlutterUnityWidgetFactory(
             builder.setFullscreenEnabled(params["fullscreen"] as Boolean)
         }
 
+        if (params.containsKey("hideStatus")) {
+            builder.setHideStatusBar(params["hideStatus"] as Boolean)
+        }
+
+        if (params.containsKey("earlyInitUnity")) {
+            builder.setRunImmediately(params["earlyInitUnity"] as Boolean)
+        }
+
+        if (params.containsKey("unloadOnDispose")) {
+            builder.setUnloadOnDispose(params["unloadOnDispose"] as Boolean)
+        }
+
         return builder.build(
                 id,
                 context,
-                appContext,
                 binaryMessenger,
                 lifecycleProvider
         )

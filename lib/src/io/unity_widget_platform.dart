@@ -1,21 +1,28 @@
-part of flutter_unity_widget;
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
-abstract class UnityViewFlutterPlatform extends PlatformInterface {
+import '../helpers/events.dart';
+import 'device_method.dart';
+
+abstract class UnityWidgetPlatform extends PlatformInterface {
   /// Constructs a UnityViewFlutterPlatform.
-  UnityViewFlutterPlatform() : super(token: _token);
+  UnityWidgetPlatform() : super(token: _token);
 
   static final Object _token = Object();
 
-  static UnityViewFlutterPlatform _instance = MethodChannelUnityViewFlutter();
+  static UnityWidgetPlatform _instance = MethodChannelUnityWidget();
 
-  /// The default instance of [UnityViewFlutterPlatform] to use.
+  /// The default instance of [UnityWidgetPlatform] to use.
   ///
-  /// Defaults to [MethodChannelUnityViewFlutter].
-  static UnityViewFlutterPlatform get instance => _instance;
+  /// Defaults to [MethodChannelUnityWidgetFlutter].
+  static UnityWidgetPlatform get instance => _instance;
 
   /// Platform-specific plugins should set this with their own platform-specific
-  /// class that extends [UnityViewFlutterPlatform] when they register themselves.
-  static set instance(UnityViewFlutterPlatform instance) {
+  /// class that extends [UnityWidgetPlatform] when they register themselves.
+  static set instance(UnityWidgetPlatform instance) {
     PlatformInterface.verifyToken(instance, _token);
     _instance = instance;
   }
@@ -105,12 +112,43 @@ abstract class UnityViewFlutterPlatform extends PlatformInterface {
     throw UnimplementedError('dispose() has not been implemented.');
   }
 
-  /// Returns a widget displaying the map view
+  /// Returns a widget displaying the unity view
   Widget buildView(
-      Map<String, dynamic> creationParams,
-      Set<Factory<OneSequenceGestureRecognizer>>? gestureRecognizers,
-      PlatformViewCreatedCallback onPlatformViewCreated,
-      bool useAndroidView) {
+    int creationId,
+    PlatformViewCreatedCallback onPlatformViewCreated, {
+    Map<String, dynamic> unityOptions = const {},
+    Set<Factory<OneSequenceGestureRecognizer>>? gestureRecognizers,
+    bool? useAndroidViewSurf,
+    String? unitySrcUrl,
+  }) {
     throw UnimplementedError('buildView() has not been implemented.');
+  }
+
+  /// Returns a widget displaying the unity view.
+  ///
+  /// This method is similar to [buildView], but contains a parameter for
+  /// platforms that require a text direction.
+  ///
+  /// Default behavior passes all parameters except `textDirection` to
+  /// [buildView]. This is for backward compatibility with existing
+  /// implementations. Platforms that use the text direction should override
+  /// this as the primary implementation, and delegate to it from buildView.
+  Widget buildViewWithTextDirection(
+    int creationId,
+    PlatformViewCreatedCallback onPlatformViewCreated, {
+    required TextDirection textDirection,
+    Set<Factory<OneSequenceGestureRecognizer>>? gestureRecognizers,
+    Map<String, dynamic> unityOptions = const <String, dynamic>{},
+    bool? useAndroidViewSurf,
+    String? unitySrcUrl,
+  }) {
+    return buildView(
+      creationId,
+      onPlatformViewCreated,
+      gestureRecognizers: gestureRecognizers,
+      unityOptions: unityOptions,
+      useAndroidViewSurf: useAndroidViewSurf,
+      unitySrcUrl: unitySrcUrl,
+    );
   }
 }

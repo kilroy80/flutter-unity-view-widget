@@ -1,28 +1,32 @@
-part of flutter_unity_widget;
+import 'dart:async';
+import 'dart:convert';
 
-/// Error thrown when an unknown unity ID is provided to a method channel API.
-class UnknownUnityIDError extends Error {
-  /// Creates an assertion error with the provided [unityId] and optional
-  /// [message].
-  UnknownUnityIDError(this.unityId, [this.message]);
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
+import 'package:stream_transform/stream_transform.dart';
 
-  /// The unknown ID.
-  final int unityId;
+import '../helpers/events.dart';
+import '../helpers/misc.dart';
+import '../helpers/types.dart';
+import 'unity_widget_platform.dart';
+import 'windows_unity_widget_view.dart';
 
-  /// Message describing the assertion error.
-  final Object? message;
-
-  String toString() {
-    if (message != null) {
-      return "Unknown unity ID $unityId: ${Error.safeToString(message)}";
-    }
-    return "Unknown unity ID $unityId";
-  }
-}
-
-class MethodChannelUnityViewFlutter extends UnityViewFlutterPlatform {
+class MethodChannelUnityWidget extends UnityWidgetPlatform {
   // Every method call passes the int unityId
   late final Map<int, MethodChannel> _channels = {};
+
+  /// Set [UnityWidgetFlutterPlatform] to use [AndroidViewSurface] to build the Google Maps widget.
+  ///
+  /// This implementation uses hybrid composition to render the Unity Widget
+  /// Widget on Android. This comes at the cost of some performance on Android
+  /// versions below 10. See
+  /// https://flutter.dev/docs/development/platform-integration/platform-views#performance for more
+  /// information.
+  /// Defaults to false.
+  bool useAndroidViewSurface = true;
 
   /// Accesses the MethodChannel associated to the passed unityId.
   MethodChannel channel(int unityId) {
@@ -37,6 +41,7 @@ class MethodChannelUnityViewFlutter extends UnityViewFlutterPlatform {
     MethodChannel? channel = _channels[unityId];
     if (channel == null) {
       channel = MethodChannel('plugin.xraph.com/unity_view_$unityId');
+
       channel.setMethodCallHandler(
           (MethodCall call) => _handleMethodCall(call, unityId));
       _channels[unityId] = channel;
@@ -56,8 +61,11 @@ class MethodChannelUnityViewFlutter extends UnityViewFlutterPlatform {
   /// Dispose of the native resources.
   @override
   Future<void> dispose({int? unityId}) async {
-    // TODO [Rex] will fix this
-    // await channel(unityId).invokeMethod('unity#dispose');
+    try {
+      if (unityId != null) await channel(unityId).invokeMethod('unity#dispose');
+    } catch (e) {
+      // ignore
+    }
   }
 
   // The controller we need to broadcast the different events coming
@@ -138,46 +146,67 @@ class MethodChannelUnityViewFlutter extends UnityViewFlutterPlatform {
   }
 
   @override
-  Widget buildView(
-      Map<String, dynamic> creationParams,
-      Set<Factory<OneSequenceGestureRecognizer>>? gestureRecognizers,
-      PlatformViewCreatedCallback onPlatformViewCreated,
-      bool useAndroidView) {
+  Widget buildViewWithTextDirection(
+    int creationId,
+    PlatformViewCreatedCallback onPlatformViewCreated, {
+    required TextDirection textDirection,
+    Set<Factory<OneSequenceGestureRecognizer>>? gestureRecognizers,
+    Map<String, dynamic> unityOptions = const <String, dynamic>{},
+    bool? useAndroidViewSurf,
+    bool? height,
+    bool? width,
+    bool? unityWebSource,
+    String? unitySrcUrl,
+  }) {
     final String _viewType = 'plugin.xraph.com/unity_view';
 
+    if (useAndroidViewSurf != null) useAndroidViewSurface = useAndroidViewSurf;
+
+    final Map<String, dynamic> creationParams = unityOptions;
+
+    if (defaultTargetPlatform == TargetPlatform.windows) {
+      return WindowsUnityWidgetView();
+    }
+
     if (defaultTargetPlatform == TargetPlatform.android) {
-      if (useAndroidView) {
+      if (!useAndroidViewSurface) {
         return AndroidView(
           viewType: _viewType,
           onPlatformViewCreated: onPlatformViewCreated,
           gestureRecognizers: gestureRecognizers,
-          hitTestBehavior: PlatformViewHitTestBehavior.opaque,
           creationParams: creationParams,
-          creationParamsCodec: StandardMessageCodec(),
+          creationParamsCodec: const StandardMessageCodec(),
         );
       }
 
       return PlatformViewLink(
         viewType: _viewType,
-        surfaceFactory:
-            (BuildContext context, PlatformViewController controller) {
+        surfaceFactory: (
+          BuildContext context,
+          PlatformViewController controller,
+        ) {
           return AndroidViewSurface(
             controller: controller as AndroidViewController,
-            gestureRecognizers: const <Factory<OneSequenceGestureRecognizer>>{},
+            gestureRecognizers: gestureRecognizers ??
+                const <Factory<OneSequenceGestureRecognizer>>{},
             hitTestBehavior: PlatformViewHitTestBehavior.opaque,
           );
         },
         onCreatePlatformView: (PlatformViewCreationParams params) {
-          return PlatformViewsService.initSurfaceAndroidView(
+          final SurfaceAndroidViewController controller =
+              PlatformViewsService.initSurfaceAndroidView(
             id: params.id,
             viewType: _viewType,
             layoutDirection: TextDirection.ltr,
             creationParams: creationParams,
-            creationParamsCodec: StandardMessageCodec(),
-          )
+            creationParamsCodec: const StandardMessageCodec(),
+            onFocus: () => params.onFocusChanged(true),
+          );
+          controller
             ..addOnPlatformViewCreatedListener(params.onPlatformViewCreated)
             ..addOnPlatformViewCreatedListener(onPlatformViewCreated)
             ..create();
+          return controller;
         },
       );
     } else if (defaultTargetPlatform == TargetPlatform.iOS) {
@@ -194,11 +223,32 @@ class MethodChannelUnityViewFlutter extends UnityViewFlutterPlatform {
   }
 
   @override
-  Future<void> postMessage(
-      {required int unityId,
-      required String gameObject,
-      required String methodName,
-      required String message}) async {
+  Widget buildView(
+    int creationId,
+    PlatformViewCreatedCallback onPlatformViewCreated, {
+    Map<String, dynamic> unityOptions = const {},
+    Set<Factory<OneSequenceGestureRecognizer>>? gestureRecognizers,
+    bool? useAndroidViewSurf,
+    String? unitySrcUrl,
+  }) {
+    return buildViewWithTextDirection(
+      creationId,
+      onPlatformViewCreated,
+      textDirection: TextDirection.ltr,
+      gestureRecognizers: gestureRecognizers,
+      unityOptions: unityOptions,
+      useAndroidViewSurf: useAndroidViewSurf,
+      unitySrcUrl: unitySrcUrl,
+    );
+  }
+
+  @override
+  Future<void> postMessage({
+    required int unityId,
+    required String gameObject,
+    required String methodName,
+    required String message,
+  }) async {
     await channel(unityId).invokeMethod('unity#postMessage', <String, dynamic>{
       'gameObject': gameObject,
       'methodName': methodName,
@@ -207,11 +257,12 @@ class MethodChannelUnityViewFlutter extends UnityViewFlutterPlatform {
   }
 
   @override
-  Future<void> postJsonMessage(
-      {required int unityId,
-      required String gameObject,
-      required String methodName,
-      required Map message}) async {
+  Future<void> postJsonMessage({
+    required int unityId,
+    required String gameObject,
+    required String methodName,
+    required Map message,
+  }) async {
     await channel(unityId).invokeMethod('unity#postMessage', <String, dynamic>{
       'gameObject': gameObject,
       'methodName': methodName,

@@ -1,132 +1,129 @@
 package com.xraph.plugin.flutter_unity_widget
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
-import android.os.Bundle
+import android.graphics.Color
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
+import android.view.View
+import android.view.ViewGroup
+import android.widget.FrameLayout
 import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
 import com.unity3d.player.IUnityPlayerLifecycleEvents
-import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.platform.PlatformView
-import java.lang.Exception
 
 
+@SuppressLint("NewApi")
 class FlutterUnityWidgetController(
-        id: Int,
-        context: Context,
-        appContext: Context,
+        private val id: Int,
+        private val context: Context,
         binaryMessenger: BinaryMessenger,
-        lifecycleProvider: LifecycleProvider,
-        options: FlutterUnityWidgetOptions
+        lifecycleProvider: LifecycleProvider
 ) :     PlatformView,
         DefaultLifecycleObserver,
-        ActivityPluginBinding.OnSaveInstanceStateListener,
         FlutterUnityWidgetOptionsSink,
         MethodCallHandler,
         UnityEventListener,
         IUnityPlayerLifecycleEvents {
 
-    private var lifecycleProvider: LifecycleProvider
+    //#region Members
+    private val LOG_TAG = "FlutterUnityController"
+    private var lifecycleProvider: LifecycleProvider = lifecycleProvider
+    var options: FlutterUnityWidgetOptions = FlutterUnityWidgetOptions()
 
     private val methodChannel: MethodChannel
-    private val id: Int
-    private val context: Context
-    private val appContext: Context
-    private val options: FlutterUnityWidgetOptions
 
     private var methodChannelResult: MethodChannel.Result? = null
-    private var unityView: UnityView? = null
+    private var view: FrameLayout
     private var disposed: Boolean = false
+    private var attached: Boolean = false
 
     init {
-        // set context and activity
-        this.context = context
-        this.appContext = appContext
-
-        this.id = id
-
-        // lifecycle
-        this.lifecycleProvider = lifecycleProvider
-
-        // set options
-        this.options = options
+        UnityPlayerUtils.controllers.add(this)
+        // set layout view
+        view = FrameLayout(context)
+        view.setBackgroundColor(Color.WHITE)
 
         // setup method channel
         methodChannel = MethodChannel(binaryMessenger, "plugin.xraph.com/unity_view_$id")
         methodChannel.setMethodCallHandler(this)
 
-        // setup unity view
-        unityView = getUnityView()
-
         // Set unity listener
         UnityPlayerUtils.addUnityEventListener(this)
-    }
 
-    fun bootstrap() {
-        this.lifecycleProvider.getLifecycle().addObserver(this)
-    }
-
-    override fun getView(): UnityView? {
-        return unityView
-    }
-
-    private fun getUnityView(): UnityView? {
-        val view = UnityView.getInstance(context)
-        if (UnityPlayerUtils.isUnityLoaded) {
-            view.player = UnityPlayerUtils.unityPlayer
+        if(UnityPlayerUtils.unityPlayer == null) {
+            createPlayer()
+            refocusUnity()
+        } else if(!UnityPlayerUtils.unityLoaded) {
+            createPlayer()
+            attachToView()
         } else {
-            createPlayer(view, false)
+            // attach unity to controller
+            attachToView()
         }
+    }
+
+    //#endregion
+
+    //#region Flutter Overrides
+    override fun getView(): View {
         return view
     }
 
     override fun dispose() {
+        Log.d(LOG_TAG, "this controller disposed")
+        UnityPlayerUtils.removeUnityEventListener(this)
         if (disposed) {
             return
         }
-        disposed = true
-        methodChannel.setMethodCallHandler(null)
+
+        detachView()
+        destroyUnityViewIfNecessary()
 
         val lifecycle = lifecycleProvider.getLifecycle()
-        if (lifecycle != null) {
-            lifecycle.removeObserver(this)
-        }
+        lifecycle.removeObserver(this)
+
+        disposed = true
     }
 
     override fun onMethodCall(methodCall: MethodCall, result: MethodChannel.Result) {
         when (methodCall.method) {
             "unity#waitForUnity" -> {
-                if (unityView != null) {
+                if (UnityPlayerUtils.unityPlayer != null) {
                     result.success(null)
                     return
                 }
+                result.success(null)
                 methodChannelResult = result
             }
             "unity#createPlayer" -> {
-                this.createPlayer(unityView, true)
+                this.createPlayer()
+                refocusUnity()
+                result.success(null)
             }
             "unity#isReady" -> {
-                result.success(UnityPlayerUtils.isUnityReady)
+                result.success(UnityPlayerUtils.unityPlayer != null)
             }
             "unity#isLoaded" -> {
-                result.success(UnityPlayerUtils.isUnityLoaded)
+                result.success(UnityPlayerUtils.unityLoaded)
             }
             "unity#isPaused" -> {
-                result.success(UnityPlayerUtils.isUnityPaused)
+                result.success(UnityPlayerUtils.unityPaused)
             }
-            "unity#inBackground" -> result.success(UnityPlayerUtils.isUnityInBackground)
             "unity#postMessage" -> {
                 val gameObject: String = methodCall.argument<String>("gameObject").toString()
                 val methodName: String = methodCall.argument<String>("methodName").toString()
                 val message: String = methodCall.argument<String>("message").toString()
-
                 UnityPlayerUtils.postMessage(gameObject, methodName, message)
                 result.success(true)
             }
@@ -146,9 +143,12 @@ class FlutterUnityWidgetController(
                 UnityPlayerUtils.unload()
                 result.success(true)
             }
-            "unity#dispose" ->                 // TODO: Handle disposing player resource efficiently
-                // UnityUtils.unload();
+            "unity#dispose" -> {
+                // destroyUnityViewIfNecessary()
+                // if ()
+                // dispose()
                 result.success(null)
+            }
             "unity#silentQuitPlayer" -> {
                 UnityPlayerUtils.quitPlayer()
                 result.success(true)
@@ -162,23 +162,27 @@ class FlutterUnityWidgetController(
             else -> result.notImplemented()
         }
     }
+    //#endregion
 
-    override fun onSaveInstanceState(bundle: Bundle) {
-        if (disposed) {
-            return
-        }
-    }
-
-    override fun onRestoreInstanceState(bundle: Bundle?) {
-        if (disposed) {
-            return
-        }
-    }
-
+    //#region Options Override
     override fun setFullscreenEnabled(fullscreenEnabled: Boolean) {
-        UnityPlayerUtils.options.fullscreenEnabled = fullscreenEnabled
+        options.fullscreenEnabled = fullscreenEnabled
     }
 
+    override fun setHideStatusBar(hideStatusBar: Boolean) {
+        options.hideStatus = hideStatusBar
+    }
+
+    override fun setRunImmediately(runImmediately: Boolean) {
+        options.runImmediately = runImmediately
+    }
+
+    override fun setUnloadOnDispose(unloadOnDispose: Boolean) {
+        options.unloadOnDispose = unloadOnDispose
+    }
+    //#endregion
+
+    //#region Unity Events
     override fun onMessage(message: String) {
         Handler(Looper.getMainLooper()).post {
             methodChannel.invokeMethod("events#onUnityMessage", message)
@@ -197,6 +201,8 @@ class FlutterUnityWidgetController(
     }
 
     override fun onUnityPlayerUnloaded() {
+        Log.d(LOG_TAG, "onUnityPlayerUnloaded")
+        UnityPlayerUtils.unityLoaded = false
         Handler(Looper.getMainLooper()).post {
             methodChannel.invokeMethod("events#onUnityUnloaded", true)
         }
@@ -206,10 +212,50 @@ class FlutterUnityWidgetController(
         TODO("Not yet implemented")
     }
 
+    //#endregion
+
+    //#region Lifecycle Overrides
+    override fun onCreate(owner: LifecycleOwner) {
+        Log.d(LOG_TAG, "onCreate")
+        owner.lifecycle.addObserver(this)
+    }
+
+    override fun onResume(owner: LifecycleOwner) {
+        Log.d(LOG_TAG, "onResume")
+        reattachToView()
+        if(UnityPlayerUtils.viewStaggered && UnityPlayerUtils.unityLoaded) {
+             this.createPlayer()
+            refocusUnity()
+            UnityPlayerUtils.viewStaggered = false
+        }
+    }
+
+    override fun onPause(owner: LifecycleOwner) {
+        Log.d(LOG_TAG, "onPause")
+        UnityPlayerUtils.viewStaggered = true
+        UnityPlayerUtils.pause()
+    }
+
+    override fun onDestroy(owner: LifecycleOwner) {
+        Log.d(LOG_TAG, "onDestroy")
+        if (disposed) {
+            return
+        }
+
+        owner.lifecycle.removeObserver(this)
+    }
+
+    //#endregion
+
+    //#region Member Methods
+    fun bootstrap() {
+        this.lifecycleProvider.getLifecycle().addObserver(this)
+    }
+
     private fun openNativeUnity() {
-        val activity = getActivity(this.context)
+        val activity = getActivity(null)
         if (activity != null) {
-            val intent = Intent(context.applicationContext, OverrideUnityActivity::class.java)
+            val intent = Intent(getActivity(null)!!.applicationContext, OverrideUnityActivity::class.java)
             intent.flags = Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
             intent.putExtra("fullscreen", options.fullscreenEnabled)
             intent.putExtra("flutterActivity", activity.javaClass)
@@ -217,13 +263,20 @@ class FlutterUnityWidgetController(
         }
     }
 
-    private fun createPlayer(view: UnityView?, reInitialize: Boolean) {
+    private fun destroyUnityViewIfNecessary() {
+        if (options.unloadOnDispose) {
+            UnityPlayerUtils.unload()
+        }
+    }
+
+    private fun createPlayer() {
         try {
-            val activity = getActivity(context)
-            if (activity != null) {
-                UnityPlayerUtils.createPlayer(activity, this, reInitialize, object : OnCreateUnityViewCallback {
+            if (UnityPlayerUtils.activity != null) {
+                UnityPlayerUtils.createUnityPlayer( this, object : OnCreateUnityViewCallback {
                     override fun onReady() {
-                        view?.setUnityPlayer(UnityPlayerUtils.unityPlayer!!)
+                        // attach unity to controller
+                        attachToView()
+
                         if (methodChannelResult != null) {
                             methodChannelResult!!.success(true)
                             methodChannelResult = null
@@ -233,22 +286,71 @@ class FlutterUnityWidgetController(
             }
         } catch (e: Exception) {
             if (methodChannelResult != null) {
+                methodChannelResult!!.error("FLUTTER_UNITY_WIDGET", e.message, e)
                 methodChannelResult!!.success(false)
                 methodChannelResult = null
             }
         }
     }
 
-    fun getActivity(context: Context?): Activity? {
+    private fun getActivity(context: Context?): Activity? {
+        if (UnityPlayerUtils.activity != null) {
+            return UnityPlayerUtils.activity
+        }
+
         if (context == null) {
-            return null
+            return UnityPlayerUtils.activity
         } else if (context is ContextWrapper) {
             return if (context is Activity) {
                 context
             } else {
-                getActivity((context as ContextWrapper).baseContext)
+                getActivity(context.baseContext)
             }
         }
-        return null
+        return UnityPlayerUtils.activity
     }
+
+    private fun detachView() {
+        UnityPlayerUtils.controllers.remove(this)
+        methodChannel.setMethodCallHandler(null)
+        UnityPlayerUtils.removePlayer(this)
+    }
+
+
+    private fun attachToView() {
+        if (UnityPlayerUtils.unityPlayer == null) return
+        Log.d(LOG_TAG, "Attaching unity to view")
+
+        if (UnityPlayerUtils.unityPlayer!!.parent != null) {
+            (UnityPlayerUtils.unityPlayer!!.parent as ViewGroup).removeView(UnityPlayerUtils.unityPlayer)
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            UnityPlayerUtils.unityPlayer!!.z = 1f
+        }
+
+        // add unity to view
+        view.addView(UnityPlayerUtils.unityPlayer)
+        UnityPlayerUtils.focus()
+        attached = true
+    }
+
+    // DO NOT CHANGE THIS FUNCTION
+    private fun refocusUnity() {
+        UnityPlayerUtils.resume()
+        UnityPlayerUtils.pause()
+        UnityPlayerUtils.resume()
+    }
+
+    fun reattachToView() {
+        if (UnityPlayerUtils.unityPlayer!!.parent != view) {
+            this.attachToView()
+            Handler(Looper.getMainLooper()).post {
+                methodChannel.invokeMethod("events#onUnityViewReattached", null)
+            }
+        }
+        view.requestLayout()
+    }
+
+    //#endregion
 }

@@ -1,113 +1,108 @@
 package com.xraph.plugin.flutter_unity_widget
 
 import android.app.Activity
-import android.graphics.PixelFormat
-import android.os.Build
-import android.os.Handler
-import android.os.Looper
 import android.util.Log
-import android.view.ViewGroup
-import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.WindowManager
+import android.widget.FrameLayout
 import com.unity3d.player.IUnityPlayerLifecycleEvents
 import com.unity3d.player.UnityPlayer
 import java.util.concurrent.CopyOnWriteArraySet
+
 
 class UnityPlayerUtils {
 
     companion object {
         private const val LOG_TAG = "UnityPlayerUtils"
 
+        var controllers: ArrayList<FlutterUnityWidgetController> = ArrayList()
+        var unityPlayer: CustomUnityPlayer? = null
         var activity: Activity? = null
-        var options: FlutterUnityWidgetOptions = FlutterUnityWidgetOptions()
-        var unityPlayer: UnityPlayer? = null
+        var prevActivityRequestedOrientation: Int? = null
 
-        var isUnityReady: Boolean = false
-        var isUnityPaused: Boolean = false
-        var isUnityLoaded: Boolean = false
-        var isUnityInBackground: Boolean = false
+        var options: FlutterUnityWidgetOptions = FlutterUnityWidgetOptions()
+
+        var unityPaused: Boolean = false
+        var unityLoaded: Boolean = false
+        var viewStaggered: Boolean = false
 
         private val mUnityEventListeners = CopyOnWriteArraySet<UnityEventListener>()
+
+        fun focus() {
+            try {
+                unityPlayer!!.windowFocusChanged(unityPlayer!!.requestFocus())
+                unityPlayer!!.resume()
+            } catch (e: Exception) {
+                Log.e(LOG_TAG, e.toString())
+            }
+        }
 
         /**
          * Create a new unity player with callback
          */
-        fun createPlayer(activity: Activity, ule: IUnityPlayerLifecycleEvents, reInitialize: Boolean, callback: OnCreateUnityViewCallback?) {
-            if (unityPlayer != null && !reInitialize) {
+        fun createUnityPlayer(ule: IUnityPlayerLifecycleEvents, callback: OnCreateUnityViewCallback?) {
+            if (activity == null) {
+                throw java.lang.Exception("Unity activity is null")
+            }
+
+            if (unityPlayer != null) {
+                unityLoaded = true
+                focus()
                 callback?.onReady()
                 return
             }
 
             try {
-                Handler(activity.mainLooper).post {
-                    if (!reInitialize) {
-                        activity.window.setFormat(PixelFormat.RGBA_8888)
-                        unityPlayer = UnityPlayer(activity, ule)
-                    }
+                unityPlayer = CustomUnityPlayer(activity!!, ule)
+                unityLoaded = true
 
-                    try {
-                        if (!reInitialize) {
-                            // wait a moment. fix unity cannot start when startup.
-                            Thread.sleep(700)
-                        }
-                    } catch (e: Exception) {
-                    }
-
-                    // start unity
-                    if (!reInitialize) {
-                        addUnityViewToBackground(activity)
-                        unityPlayer!!.windowFocusChanged(true)
-                        unityPlayer!!.requestFocus()
-                        unityPlayer!!.resume()
-
-                        // restore window layout
-                       if (!options.fullscreenEnabled) {
-                           activity.window.addFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN)
-                           activity.window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
-                       }
-                    }
-
-                    isUnityReady = true
-                    isUnityLoaded = true
-
-                    callback?.onReady()
+                if (!options.fullscreenEnabled) {
+                    activity!!.window.addFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN);
+                    activity!!.window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+                } else {
+                    activity!!.window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
                 }
+
+                focus()
+                callback?.onReady()
             } catch (e: Exception) {
                 Log.e(LOG_TAG, e.toString())
             }
         }
 
         fun postMessage(gameObject: String, methodName: String, message: String) {
-            if (!isUnityReady) {
-                return
-            }
             UnityPlayer.UnitySendMessage(gameObject, methodName, message)
         }
 
         fun pause() {
-            if (unityPlayer != null && isUnityLoaded) {
-                unityPlayer!!.pause()
-                isUnityPaused = true
+            try {
+                if (unityPlayer != null) {
+                    unityPlayer!!.pause()
+                    unityPaused = true
+                }
+            } catch (e: Exception) {
+                Log.e(LOG_TAG, e.toString())
             }
         }
 
         fun resume() {
-            if (unityPlayer != null) {
-                unityPlayer!!.resume()
-                isUnityPaused = false
+            try {
+                if (unityPlayer != null) {
+                    unityPlayer!!.resume()
+                    unityPaused = false
+                }
+            } catch (e: Exception) {
+                Log.e(LOG_TAG, e.toString())
             }
         }
 
         fun unload() {
-            if (unityPlayer != null) {
-                unityPlayer!!.unload()
-                isUnityLoaded = false
-            }
-        }
-
-        fun moveToBackground() {
-            if (unityPlayer != null) {
-                isUnityInBackground = true
+            try {
+                if (unityPlayer != null) {
+                    unityPlayer!!.unload()
+                    unityLoaded = false
+                }
+            } catch (e: Exception) {
+                Log.e(LOG_TAG, e.toString())
             }
         }
 
@@ -115,8 +110,7 @@ class UnityPlayerUtils {
             try {
                 if (unityPlayer != null) {
                     unityPlayer!!.quit()
-                    isUnityLoaded = false
-                    isUnityReady = false
+                    unityLoaded = false
                 }
             } catch (e: Error) {
                 e.message?.let { Log.e(LOG_TAG, it) }
@@ -142,6 +136,7 @@ class UnityPlayerUtils {
          */
         @JvmStatic
         fun onUnityMessage(message: String) {
+            Log.d("UnityListener", "total listeners are ${mUnityEventListeners.size}")
             for (listener in mUnityEventListeners) {
                 try {
                     listener.onMessage(message)
@@ -159,54 +154,27 @@ class UnityPlayerUtils {
             mUnityEventListeners.remove(listener)
         }
 
-        fun addUnityViewToBackground(activity: Activity) {
-            if (unityPlayer == null) {
-                return
+        private fun shakeActivity() {
+            unityPlayer?.windowFocusChanged(true)
+            if (prevActivityRequestedOrientation != null) {
+                activity?.requestedOrientation = prevActivityRequestedOrientation!!
             }
-            if (unityPlayer!!.parent != null) {
-                (unityPlayer!!.parent as ViewGroup).removeView(unityPlayer)
-            }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                unityPlayer!!.z = -1f
-            }
-            val layoutParams = ViewGroup.LayoutParams(1, 1)
-            activity.addContentView(unityPlayer, layoutParams)
-            isUnityInBackground = true
         }
 
-        fun restoreUnityViewFromBackground(activity: Activity) {
-            if (unityPlayer == null) {
-                return
+        fun removePlayer(controller: FlutterUnityWidgetController) {
+            if (unityPlayer!!.parent == controller.view) {
+                if (controllers.isEmpty()) {
+                    (controller.view as FrameLayout).removeView(unityPlayer)
+                    pause()
+                    shakeActivity()
+                } else {
+                    controllers[controllers.size - 1].reattachToView()
+                }
             }
-
-            if (unityPlayer!!.parent != null) {
-                (unityPlayer!!.parent as ViewGroup).addView(unityPlayer)
-            }
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                unityPlayer!!.z = 1f
-            }
-
-            val layoutParams = ViewGroup.LayoutParams(1, 1)
-            activity.addContentView(unityPlayer, layoutParams)
-            isUnityInBackground = false
         }
 
-        fun addUnityViewToGroup(group: ViewGroup) {
-            if (unityPlayer == null) {
-                return
-            }
-
-            if (unityPlayer!!.parent != null) {
-                (unityPlayer!!.parent as ViewGroup).removeView(unityPlayer)
-            }
-
-            val layoutParams = ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT)
-            group.addView(unityPlayer, 0, layoutParams)
-
-            unityPlayer!!.windowFocusChanged(true)
-            unityPlayer!!.requestFocus()
-            unityPlayer!!.resume()
+        fun reset() {
+            unityLoaded = false
         }
     }
 }

@@ -9,17 +9,15 @@ class FlutterUnityWidgetBuilder : FlutterUnityWidgetOptionsSink {
     fun build(
             id: Int,
             context: Context,
-            appContext: Context,
             binaryMessenger: BinaryMessenger,
             lifecycle: LifecycleProvider
     ): FlutterUnityWidgetController {
+        UnityPlayerUtils.options = options
         val controller = FlutterUnityWidgetController(
                 id,
                 context,
-                appContext,
                 binaryMessenger,
-                lifecycle,
-                options
+                lifecycle
         )
         controller.bootstrap()
 
@@ -28,5 +26,21 @@ class FlutterUnityWidgetBuilder : FlutterUnityWidgetOptionsSink {
 
     override fun setFullscreenEnabled(fullscreenEnabled: Boolean) {
         options.fullscreenEnabled = fullscreenEnabled
+        UnityPlayerUtils.options.fullscreenEnabled = fullscreenEnabled
+    }
+
+    override fun setHideStatusBar(hideStatusBar: Boolean) {
+        options.hideStatus = hideStatusBar
+        UnityPlayerUtils.options.hideStatus = hideStatusBar
+    }
+
+    override fun setRunImmediately(runImmediately: Boolean) {
+        options.runImmediately = runImmediately
+        UnityPlayerUtils.options.runImmediately = runImmediately
+    }
+
+    override fun setUnloadOnDispose(unloadOnDispose: Boolean) {
+        options.unloadOnDispose = unloadOnDispose
+        UnityPlayerUtils.options.unloadOnDispose = unloadOnDispose
     }
 }

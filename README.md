@@ -10,16 +10,24 @@
 
 [![Gitter](https://badges.gitter.im/flutter-unity/community.svg)](https://gitter.im/flutter-unity/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
-Flutter unity 3D widget for embedding unity in flutter. Now you can make awesome gamified features of your app in Unity and get it rendered in a Flutter app both in fullscreen and embeddable mode. Works great on Android, iPad OS and iOS. There are now two unity app examples in the unity folder, one with the default scene and another based on Unity AR foundation samples.
+Flutter unity 3D widget for embedding unity in flutter. Now you can make awesome gamified features of your app in Unity and get it rendered in a Flutter app both in fullscreen and embeddable mode. Works great on `Android, iPad OS, iOS, Web, with Windows` nearing completion. There are now two unity app examples in the unity folder, one with the default scene and another based on Unity AR foundation samples.
 <br />
 Note: Supports only Unity 2019.4.3 or later. UnityFramework does not support emulator.
+Note: Please use OpenGLES3 as Graphics API only for now (Android only).
 <br />
 
 
 ## Notice
+Need me to respond, tag me [Rex Isaac Raphael](www.github.com/juicycleff).
+
+Always use the matching FUW unitypackage for the unity version your are using.
 
 This plugin expects you to atleast know how to use Unity Engine. If you have issues with how unity widget is presented, you can please modify your unity project build settings as you seem fit.
 
+Moving forward, versioning of the package will change to match unity releases after proper test. Mind you this does not mean the package
+is not compatible with other versions, it just mean it's been tested to work with a unity version.
+
+Windows coming soon.
 
 ## Installation
 
@@ -27,14 +35,7 @@ First depend on the library by adding this to your packages `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  flutter_unity_widget: ^4.1.0
-```
-
-Null-safe version:
-
-```yaml
-dependencies:
-  flutter_unity_widget: ^4.2.2
+  flutter_unity_widget: ^2022.1.0+4
 ```
 
 Now inside your Dart code you can import it.
@@ -65,8 +66,9 @@ the platform name (Android or iOS). You can click on its icon to expand it.
 
 - An existing Unity project (if there is none, you can [create a new one](https://learn.unity.com/tutorial/create-your-first-unity-project)).
 
-- A [`FlutterUnityPackage.unitypackage`](https://raw.githubusercontent.com/juicycleff/flutter-unity-view-widget/master/scripts/FlutterUnityIntegration-v4.unitypackage) 
+- A [`FlutterUnityPackage.unitypackage`](https://raw.githubusercontent.com/juicycleff/flutter-unity-view-widget/master/unitypackages/fuw-2022.1.0.unitypackage) 
   file (you can access the Unity packages in the [*scripts*](https://github.com/juicycleff/flutter-unity-view-widget/tree/master/scripts) folder too)
+  Remeber to always check the match unitypackage for your project.
 
 #### NDK
 
@@ -600,9 +602,14 @@ class _MyAppState extends State<MyApp> {
 
 ## Known issues
  - Remember to disabled fullscreen in unity player settings to disable unity fullscreen.
+ - Unity freezes and crashes on Android, please use OpenGL3 as Graphics API.
  - Project fails to build due to some native dependencies in your unity project, please integrate the native libraries for those dependencies on Android or iOS
  - App crashes on screen exit and re-entry do this
-   > Build Setting - iOS - Other Settings - Configuration - Enable Custom Background Behaviors
+   > Build Setting - iOS - Other Settings - Configuration - Enable Custom Background Behaviors or iOS
+ - Android builds takes forever to complete Unity 2022.1.*, remove these lines from unityLibrary/build.gradle file
+   > commandLineArgs.add("--enable-debugger")
+   > commandLineArgs.add("--profiler-report")
+   > commandLineArgs.add("--profiler-output-file=" + workingDir + "/build/il2cpp_"+ abi + "_" + configuration + "/il2cpp_conv.traceevents")
 
 
 #### Sponsors

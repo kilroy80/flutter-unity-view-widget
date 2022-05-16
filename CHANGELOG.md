@@ -1,3 +1,35 @@
+## 2022.1.0+4
+
+* Fixed unity screen turning white on scene load (Android)
+
+## 2022.1.0+2
+
+* Fixed analysis errors
+
+## 2022.1.0+1
+
+* Full support for web
+* Fixed android view refocus issue when detached or diposed
+
+## 2022.1.0
+
+* Fixed android freezing with AndroidView
+* Fixed FUW export scripts
+
+CHANGELOG.md
+
+## 4.2.5+1
+
+* Removed MultiWindowSupport due to issus on Windows machine export not containing the class
+
+## 4.2.5
+
+* Fixed ios crashing on screen change and on hot reload
+
+## 4.2.4
+
+* Fixed issue with android freezing when screen loses focus
+
 ## 4.2.3
 
 * Fixed iOS Run/Build errors: [471](https://github.com/juicycleff/flutter-unity-view-widget/issues/471)
