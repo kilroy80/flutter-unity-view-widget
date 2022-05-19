@@ -18,8 +18,7 @@ Note: Please use OpenGLES3 as Graphics API only for now (Android only).
 
 
 ## Notice
-Need me to respond, tag me [Rex Isaac Raphael](www.github.com/juicycleff).
-
+Need me to respond, tag me [Rex Isaac Raphael](www.github.com/juicycleff). 
 Always use the matching FUW unitypackage for the unity version your are using.
 
 This plugin expects you to atleast know how to use Unity Engine. If you have issues with how unity widget is presented, you can please modify your unity project build settings as you seem fit.
@@ -29,13 +28,17 @@ is not compatible with other versions, it just mean it's been tested to work wit
 
 Windows coming soon.
 
+^2022.1.0+5 supports Flutter 3.0.0 and can only work with `PlatformViewSurface` for now. The implications of this is
+you have to pass `useAndroidViewSurface: true` to UnityWidget. You can track this [issue](https://github.com/flutter/flutter/issues/103630).
+Currently working on supporting AndroidView.
+
 ## Installation
 
 First depend on the library by adding this to your packages `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  flutter_unity_widget: ^2022.1.0+4
+  flutter_unity_widget: ^2022.1.0+5
 ```
 
 Now inside your Dart code you can import it.
