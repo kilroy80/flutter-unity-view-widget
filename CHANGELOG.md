@@ -1,3 +1,23 @@
+## 2022.2.0
+
+* Enable AndroidView due to native view improvement in flutter 3.3.0
+
+## 2022.1.7+1
+
+* **BREAKING-CHANGE**:
+    * `webUrl` is now removed!
+    * You don't need to pass webUrl anymore! This plugin is automatically reading it from your `Uri` -> this means that everything is prepared for your Debug and Release Apps!
+* Update dependencies
+* Override `webview_flutter` to `^2.8.0` (compatible)
+
+## 2022.1.7
+
+* Fix latest Android Build and Run Performance (see [#643](https://github.com/juicycleff/flutter-unity-view-widget/issues/643) -> Thank to: [@timbotimbo](https://github.com/timbotimbo))
+* Add iOS Debug and Release Builds
+* Add Android Debug and Release Builds
+* Fix iOS XCode Settings for Unity < 2020
+* Update actual compatibility to Unity 2022.1.7f1
+
 ## 2022.1.1+4
 
 * 🌎 Web is now stable 🚀:

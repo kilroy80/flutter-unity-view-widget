@@ -9,6 +9,7 @@
 [![Star on GitHub][github-star-badge]][github-star]
 
 [![Gitter](https://badges.gitter.im/flutter-unity/community.svg)](https://gitter.im/flutter-unity/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+[![Discord](https://img.shields.io/badge/Discord-blue?style=for-the-badge)](https://discord.gg/KmMqD7Sv3K)
 
 Flutter unity 3D widget for embedding unity in flutter. Now you can make awesome gamified features of your app in Unity and get it rendered in a Flutter app both in fullscreen and embeddable mode. Works great on `Android, iPad OS, iOS, Web, with Windows` nearing completion. There are now two unity app examples in the unity folder, one with the default scene and another based on Unity AR foundation samples.
 <br />
@@ -28,17 +29,13 @@ is not compatible with other versions, it just mean it's been tested to work wit
 
 Windows coming soon.
 
-^2022.1.0+5 supports Flutter 3.0.0 and can only work with `PlatformViewSurface` for now. The implications of this is
-you have to pass `useAndroidViewSurface: true` to UnityWidget. You can track this [issue](https://github.com/flutter/flutter/issues/103630).
-Currently working on supporting AndroidView.
-
 ## Installation
 
 First depend on the library by adding this to your packages `pubspec.yaml`:
  -  Flutter 3.0.0
 ```yaml
 dependencies:
-  flutter_unity_widget: ^2022.1.1+3
+  flutter_unity_widget: ^2022.2.0
 ```
 
 
@@ -126,12 +123,12 @@ That's it! You don't need to tell your Android App in your `app/build.gradle` th
 4. Go to **Assets > Import Package > Custom Package** and select the 
     *FlutterUnityPackage.unitypackage* file. Click on **Import**.
 
-5. After importing, click on **Flutter** and select the **Export Android** option (will export to *android/unityLibrary*) or the **Export iOS** 
+5. After importing, click on **Flutter** and select the **Export Android Debug** or **Export Android Release** option (will export to *android/unityLibrary*) or the **Export iOS Debug** or **Export iOS Release**
 option (will export to *ios/UnityLibrary*).
 
 > Do not use **Flutter > Export _Platform_ plugin** as it was specially added to work with [`flutter_unity_cli`](https://github.com/juicycleff/flutter_unity_cli) for larger projects.
 
-<img src="https://github.com/juicycleff/flutter-unity-view-widget/blob/master/files/Screenshot%202019-03-27%2008.13.08.png?raw=true" width="400" />
+<img src="https://github.com/juicycleff/flutter-unity-view-widget/blob/master/files/Unity_Build_Options.png?raw=true" width="400" />
 
 <details>
  <summary>:information_source: <b>Android</b></summary>

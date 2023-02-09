@@ -170,7 +170,7 @@ var sharedApplication: UIApplication?
             return
         }
 
-        let unityAppController = self.ufw?.appController as? UnityAppController
+        let unityAppController = self.ufw?.appController() as? UnityAppController
         let application = UIApplication.shared
 
         if notification?.name == UIApplication.willResignActiveNotification {
@@ -199,13 +199,10 @@ var sharedApplication: UIApplication?
             UIApplication.willEnterForegroundNotification,
             UIApplication.didReceiveMemoryWarningNotification
         ] {
-            guard let name = name as? String else {
-                continue
-            }
             NotificationCenter.default.addObserver(
                 self,
                 selector: #selector(self.handleAppStateDidChange),
-                name: NSNotification.Name(name),
+                name: name,
                 object: nil)
         }
     }
@@ -251,7 +248,6 @@ var sharedApplication: UIApplication?
     /// the controller handler methods
     @objc
     func unityMessageHandlers(_ message: UnsafePointer<Int8>?) {
-
         for c in globalControllers {
             if let strMsg = message {
                 c.handleMessage(message: String(utf8String: strMsg) ?? "")
@@ -259,7 +255,6 @@ var sharedApplication: UIApplication?
                 c.handleMessage(message: "")
             }
         }
-
     }
 
     func unitySceneLoadedHandlers(name: UnsafePointer<Int8>?, buildIndex: UnsafePointer<Int32>?, isLoaded: UnsafePointer<Bool>?, isValid: UnsafePointer<Bool>?) {
