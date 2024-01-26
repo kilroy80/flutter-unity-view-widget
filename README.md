@@ -19,7 +19,7 @@ Note: Please use OpenGLES3 as Graphics API only for now (Android only).
 
 
 ## Notice
-Need me to respond, tag me [Rex Isaac Raphael](www.github.com/juicycleff). 
+Need me to respond, tag me [Rex Isaac Raphael](https://github.com/juicycleff). 
 Always use the matching FUW unitypackage for the unity version your are using.
 
 This plugin expects you to atleast know how to use Unity Engine. If you have issues with how unity widget is presented, you can please modify your unity project build settings as you seem fit.
@@ -73,9 +73,8 @@ the platform name (Android or iOS). You can click on its icon to expand it.
 
 - An existing Unity project (if there is none, you can [create a new one](https://learn.unity.com/tutorial/create-your-first-unity-project)).
 
-- A [`FlutterUnityPackage.unitypackage`](https://raw.githubusercontent.com/juicycleff/flutter-unity-view-widget/master/unitypackages/fuw-2022.1.1.unitypackage) 
-  file (you can access the Unity packages in the [*unitypackages*](https://github.com/juicycleff/flutter-unity-view-widget/tree/master/unitypackages) folder too)
-  Remeber to always check the match unitypackage for your project.
+- A `fuw-XXXX.unitypackage` file, found in the [*unitypackages*](https://github.com/juicycleff/flutter-unity-view-widget/tree/master/unitypackages) folder.
+Try to use the most recent unitypackage available.
 
 #### NDK
 
@@ -99,9 +98,9 @@ That's it! You don't need to tell your Android App in your `app/build.gradle` th
 
 > The expected path is *unity/__project-name__/...*
 
-2. Copy the *FlutterUnityPackage.unitypackage* file into the Unity project folder.
+2. Copy the *fuw-XXXX.unitypackage* file into the Unity project folder.
 
-> The expected path is *unity/__project-name__/FlutterUnityPackage.unitypackage*
+> The expected path is *unity/__project-name__/fuw-XXXX.unitypackage*
 
 3. Using Unity, open the Unity project, go to **File > Build Settings > Player Settings**
     and change the following under the **Configuration** section:
@@ -121,7 +120,7 @@ That's it! You don't need to tell your Android App in your `app/build.gradle` th
 > Be sure you have at least one scene added to your build.
 
 4. Go to **Assets > Import Package > Custom Package** and select the 
-    *FlutterUnityPackage.unitypackage* file. Click on **Import**.
+    *fuw-XXXX.unitypackage* file. Click on **Import**.
 
 5. After importing, click on **Flutter** and select the **Export Android Debug** or **Export Android Release** option (will export to *android/unityLibrary*) or the **Export iOS Debug** or **Export iOS Release**
 option (will export to *ios/UnityLibrary*).
@@ -342,6 +341,52 @@ Thanks to [@PiotrxKolasinski](https://github.com/PiotrxKolasinski) for writing d
 **Error:**
 
 ```
+Multiple precompiled assemblies with the same name Newtonsoft.Json.dll included on the current platform. Only one assembly with the same name is allowed per platform. (Assets/FlutterUnityIntegration/JsonDotNet/Assemblies/AOT/Newtonsoft.Json.dll)
+
+PrecompiledAssemblyException: Multiple precompiled assemblies with the same name Newtonsoft.Json.dll included on the current platform. Only one assembly with the same name is allowed per platform.
+```
+
+**Solution:**
+Locate the listed dll file, in this case:
+`Assets/FlutterUnityIntegration/JsonDotNet/Assemblies/AOT/Newtonsoft.Json.dll`
+
+- Option 1:
+Delete the dll file or rename the file extension (e.g. `.dll.txt`) to stop it from being imported.
+- Option 2:
+Uninstall the package that conflicts in the Unity package manager (usually Version control, or Collab).
+The exact package can be found by looking for newtonsoft in `package-lock.json`
+
+---
+
+
+**Location:** Unity
+
+**Error:**
+
+```
+The type or namespace name 'Newtonsoft' could not be found (are you missing a using directive or an assembly reference?)
+The type or namespace name 'JObject' could not be found (are you missing a using directive or an assembly reference?)
+The type or namespace name 'JToken' could not be found (are you missing a using directive or an assembly reference?)
+The type or namespace name 'JToken' could not be found (are you missing a using directive or an assembly reference?)
+```
+
+**Solution:**
+
+Include the Newtonsoft JsonDotNet library.
+It is likely already included in your project with a wrong file extension:
+`Assets/FlutterUnityIntegration/JsonDotNet/Assemblies/AOT/Newtonsoft.Json.dll.txt`
+Rename the `.dll.txt` extension to `.dll` in your file explorer and open Unity again.
+
+Alternatively you can manually add [the library](https://docs.unity3d.com/Packages/com.unity.nuget.newtonsoft-json@3.1/manual/index.html) from the Unity package manager.
+
+---
+
+
+**Location:** Unity
+
+**Error:**
+
+```
 InvalidOperationException: The build target does not support build appending.
 ```
 
@@ -434,40 +479,41 @@ Unable to find a matching variant of project :unityLibrary:
 
 ```dart
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_unity_widget/flutter_unity_widget.dart';
 
 void main() {
-  runApp(MaterialApp(
-    home: UnityDemoScreen()
-  ));
+  runApp(
+    const MaterialApp(
+      home: UnityDemoScreen(),
+    ),
+  );
 }
 
 class UnityDemoScreen extends StatefulWidget {
-
-  UnityDemoScreen({Key key}) : super(key: key);
+  const UnityDemoScreen({Key? key}) : super(key: key);
 
   @override
-  _UnityDemoScreenState createState() => _UnityDemoScreenState();
+  State<UnityDemoScreen> createState() => _UnityDemoScreenState();
 }
 
-class _UnityDemoScreenState extends State<UnityDemoScreen>{
+class _UnityDemoScreenState extends State<UnityDemoScreen> {
   static final GlobalKey<ScaffoldState> _scaffoldKey =
       GlobalKey<ScaffoldState>();
-  UnityWidgetController _unityWidgetController;
+  UnityWidgetController? _unityWidgetController;
 
+  @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       key: _scaffoldKey,
       body: SafeArea(
         bottom: false,
         child: WillPopScope(
-          onWillPop: () {
+          onWillPop: () async {
             // Pop the category page if Android back button is pressed.
+            return true;
           },
           child: Container(
-            color: colorYellow,
+            color: Colors.yellow,
             child: UnityWidget(
               onUnityCreated: onUnityCreated,
             ),
@@ -479,9 +525,10 @@ class _UnityDemoScreenState extends State<UnityDemoScreen>{
 
   // Callback that connects the created controller to the unity controller
   void onUnityCreated(controller) {
-    this._unityWidgetController = controller;
+    _unityWidgetController = controller;
   }
 }
+
 ```
 <br />
 
@@ -491,17 +538,19 @@ class _UnityDemoScreenState extends State<UnityDemoScreen>{
 import 'package:flutter/material.dart';
 import 'package:flutter_unity_widget/flutter_unity_widget.dart';
 
-void main() => runApp(MyApp());
+void main() => runApp(const MyApp());
 
 class MyApp extends StatefulWidget {
+  const MyApp({Key? key}) : super(key: key);
+
   @override
-  _MyAppState createState() => _MyAppState();
+  State<MyApp> createState() => _MyAppState();
 }
 
 class _MyAppState extends State<MyApp> {
   static final GlobalKey<ScaffoldState> _scaffoldKey =
       GlobalKey<ScaffoldState>();
-  UnityWidgetController _unityWidgetController;
+  UnityWidgetController? _unityWidgetController;
   double _sliderValue = 0.0;
 
   @override
@@ -526,10 +575,10 @@ class _MyAppState extends State<MyApp> {
           child: Stack(
             children: <Widget>[
               UnityWidget(
-                  onUnityCreated: onUnityCreated,
-                  onUnityMessage: onUnityMessage,
-                  onUnitySceneLoaded: onUnitySceneLoaded,
-                  fullscreen: false,
+                onUnityCreated: onUnityCreated,
+                onUnityMessage: onUnityMessage,
+                onUnitySceneLoaded: onUnitySceneLoaded,
+                fullscreen: false,
               ),
               Positioned(
                 bottom: 20,
@@ -539,8 +588,8 @@ class _MyAppState extends State<MyApp> {
                   elevation: 10,
                   child: Column(
                     children: <Widget>[
-                      Padding(
-                        padding: const EdgeInsets.only(top: 20),
+                      const Padding(
+                        padding: EdgeInsets.only(top: 20),
                         child: Text("Rotation speed:"),
                       ),
                       Slider(
@@ -567,7 +616,7 @@ class _MyAppState extends State<MyApp> {
 
   // Communcation from Flutter to Unity
   void setRotationSpeed(String speed) {
-    _unityWidgetController.postMessage(
+    _unityWidgetController?.postMessage(
       'Cube',
       'SetRotationSpeed',
       speed,
@@ -581,15 +630,17 @@ class _MyAppState extends State<MyApp> {
 
   // Callback that connects the created controller to the unity controller
   void onUnityCreated(controller) {
-    this._unityWidgetController = controller;
+    _unityWidgetController = controller;
   }
 
   // Communication from Unity when new scene is loaded to Flutter
-  void onUnitySceneLoaded(SceneLoaded sceneInfo) {
-    print('Received scene loaded from unity: ${sceneInfo.name}');
-    print('Received scene loaded from unity buildIndex: ${sceneInfo.buildIndex}');
+  void onUnitySceneLoaded(SceneLoaded? sceneInfo) {
+    if (sceneInfo != null) {
+      print('Received scene loaded from unity: ${sceneInfo.name}');
+      print(
+          'Received scene loaded from unity buildIndex: ${sceneInfo.buildIndex}');
+    }
   }
-
 }
 
 ```
