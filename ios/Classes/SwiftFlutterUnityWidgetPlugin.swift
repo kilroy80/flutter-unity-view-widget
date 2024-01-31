@@ -5,6 +5,8 @@ public class SwiftFlutterUnityWidgetPlugin: NSObject, FlutterPlugin {
     private static var methodChannel: FlutterMethodChannel?
     private static var unityEventHandler: HandleEventSink?
     private static var unityEventChannel: FlutterEventChannel?
+
+    private static var customMethodChannel: FlutterMethodChannel?
     
     public static func register(with registrar: FlutterPluginRegistrar) {
         methodChannel = FlutterMethodChannel(name: "plugin.xraph.com/base_channel", binaryMessenger: registrar.messenger())
@@ -13,9 +15,26 @@ public class SwiftFlutterUnityWidgetPlugin: NSObject, FlutterPlugin {
         
         methodChannel?.setMethodCallHandler(methodHandler)
         unityEventChannel?.setStreamHandler(unityEventHandler)
+
+        customMethodChannel = FlutterMethodChannel(name: "plugin.xraph.com/custom_channel", binaryMessenger: registrar.messenger())
+        customMethodChannel?.setMethodCallHandler(customMethodHandler)
         
         let fuwFactory = FLTUnityWidgetFactory(registrar: registrar)
         registrar.register(fuwFactory, withId: "plugin.xraph.com/unity_view", gestureRecognizersBlockingPolicy: FlutterPlatformViewGestureRecognizersBlockingPolicyWaitUntilTouchesEnded)
+    }
+
+    private static func customMethodHandler(_ call: FlutterMethodCall, result: FlutterResult) {
+        if call.method == "unity#vc#create" {
+            guard let presentingVC = UIApplication.shared.topViewController else {
+                print("presentingVC nil")
+                return
+            }
+
+            let vc = STUnityViewController()
+            vc.modalPresentationStyle = UIModalPresentationStyle.fullScreen
+
+            presentingVC.present(vc, animated: false)
+        }
     }
     
     private static func methodHandler(_ call: FlutterMethodCall, result: FlutterResult) {
@@ -23,7 +42,7 @@ public class SwiftFlutterUnityWidgetPlugin: NSObject, FlutterPlugin {
         let arguments = call.arguments as? NSDictionary
         let id = arguments?["unityId"] as? Int ?? 0
         let unityId = "unity-id-\(id)"
-        
+
         if call.method == "unity#dispose" {
             GetUnityPlayerUtils().activeController?.dispose()
             result(nil)
@@ -81,4 +100,38 @@ public class SwiftFlutterUnityWidgetPlugin: NSObject, FlutterPlugin {
                                 "flutter arguments in method: (postMessage)", details: nil))
         }
     }
+}
+
+extension UIApplication {
+    var topViewController: UIViewController? {
+        var topViewController: UIViewController? = nil
+        if #available(iOS 13, *) {
+            topViewController = connectedScenes.compactMap {
+                return ($0 as? UIWindowScene)?.windows.filter { $0.isKeyWindow  }.first?.rootViewController
+            }.first
+        } else {
+            topViewController = keyWindow?.rootViewController
+        }
+        if let presented = topViewController?.presentedViewController {
+            topViewController = presented
+        } else if let navController = topViewController as? UINavigationController {
+            topViewController = navController.topViewController
+        } else if let tabBarController = topViewController as? UITabBarController {
+            topViewController = tabBarController.selectedViewController
+        }
+        return topViewController
+    }
+
+    class func topNavigationController(_ viewController: UIViewController? = UIApplication.shared.keyWindow?.rootViewController) -> UINavigationController? {
+
+            if let nav = viewController as? UINavigationController {
+                return nav
+            }
+            if let tab = viewController as? UITabBarController {
+                if let selected = tab.selectedViewController {
+                    return selected.navigationController
+                }
+            }
+            return viewController?.navigationController
+        }
 }
