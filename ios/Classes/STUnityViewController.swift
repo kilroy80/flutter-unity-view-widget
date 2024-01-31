@@ -17,13 +17,6 @@ class STUnityViewController: UIViewController {
                                                selector: #selector(handleMassage(_:)),
                                                name: .publishToFlutter,
                                                object: nil)
-
-//        GetUnityPlayerUtils().createPlayer(completed: { [self] (view: UIView?) in
-//            if (view != nil) {
-//                self.view.insertSubview(view!, at: 0)
-//                self.button.isHidden = false
-//            }
-//        })
         
         button = UIButton(frame: CGRect(x: 0, y: 24.0, width: 100, height: 50))
         button.backgroundColor = .green
@@ -33,7 +26,14 @@ class STUnityViewController: UIViewController {
 
         self.view.insertSubview(button, at: 1)
         
-        reattachView()
+//        reattachView()
+        
+        GetUnityPlayerUtils().createPlayer(completed: { [self] (view: UIView?) in
+            if (view != nil) {
+                self.view.insertSubview(view!, at: 0)
+            }
+            self.button.isHidden = false
+        })
     }
     
     deinit {
@@ -57,7 +57,9 @@ class STUnityViewController: UIViewController {
 //      dismiss(viewController: self)
 //        self.view.removeFromSuperview()
 //        GetUnityPlayerUtils().unityDidUnload(nil)
-        GetUnityPlayerUtils().unload()
+//        GetUnityPlayerUtils().unload()
+      NotificationCenter.default.removeObserver(self)
+      GetUnityPlayerUtils().unload()
       self.dismiss(animated: false)
     }
     
@@ -68,22 +70,23 @@ class STUnityViewController: UIViewController {
     }
     
     func reattachView() {
-            let unityView = GetUnityPlayerUtils().ufw?.appController()?.rootView
+        let unityView = GetUnityPlayerUtils().ufw?.appController()?.rootView
         if (unityView == nil) {
+            print("aaaa")
             GetUnityPlayerUtils().createPlayer(completed: { [self] (view: UIView?) in
                 if (view != nil) {
                     self.view.insertSubview(view!, at: 0)
-                    self.button.isHidden = false
                 }
+                self.button.isHidden = false
             })
         } else {
+            print("bbbb")
             self.view.insertSubview(unityView!, at: 0)
             self.button.isHidden = false
-
         }
 
-            GetUnityPlayerUtils().resume()
-        }
+//        GetUnityPlayerUtils().resume()
+    }
 }
 
 extension UIViewController {
