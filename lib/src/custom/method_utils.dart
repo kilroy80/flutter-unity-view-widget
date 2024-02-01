@@ -14,9 +14,11 @@ class MethodUtils {
 
   late MethodChannel channel;
 
-  Future<void> launch() async {
+  Future<void> launch(String data) async {
     if (Platform.isIOS) {
-      await channel.invokeMethod('unity#vc#create');
+      await channel.invokeMethod('unity#vc#create', {
+        'data': data,
+      });
     }
   }
 }

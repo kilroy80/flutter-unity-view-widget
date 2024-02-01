@@ -24,16 +24,23 @@ public class SwiftFlutterUnityWidgetPlugin: NSObject, FlutterPlugin {
     }
 
     private static func customMethodHandler(_ call: FlutterMethodCall, result: FlutterResult) {
+        let arguments = call.arguments as? NSDictionary
+        let data = arguments?["data"] as? String ?? ""
+
         if call.method == "unity#vc#create" {
             guard let presentingVC = UIApplication.shared.topViewController else {
                 print("presentingVC nil")
                 return
             }
+            
+            let nextVc = STUnityViewController()
+            nextVc.modalPresentationStyle = UIModalPresentationStyle.fullScreen
 
-            let vc = STUnityViewController()
-            vc.modalPresentationStyle = UIModalPresentationStyle.fullScreen
+            weak var delegate: ViewControllerDataDelegate?
+            delegate = nextVc
+            delegate?.sendData(data: "flutter -> native(ios) message \(data)")
 
-            presentingVC.present(vc, animated: false)
+            presentingVC.present(nextVc, animated: false)
         }
     }
     
