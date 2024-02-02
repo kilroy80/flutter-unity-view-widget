@@ -3,7 +3,9 @@ import UIKit
 
 public protocol ViewControllerDataDelegate: AnyObject {
     func initMessage(message: String)
-    func handleUnityMessage(message: String)
+    func onUnityViewCreated(message: String)
+    func onUnitySceneLoaded(message: String)
+    func onUnityMessage(message: String)
 }
 
 @objc
@@ -19,8 +21,16 @@ open class NativeUnityViewController: UIViewController, ViewControllerDataDelega
         print(message)
     }
     
-    open func handleUnityMessage(message: String) {
-        print(message)
+    open func onUnityViewCreated(message: String) {
+//        print(message)
+    }
+    
+    open func onUnitySceneLoaded(message: String) {
+//        print(message)
+    }
+    
+    open func onUnityMessage(message: String) {
+//        print(message)
     }
     
     open override func viewDidLoad() {
@@ -53,7 +63,23 @@ open class NativeUnityViewController: UIViewController, ViewControllerDataDelega
             if let payload = dict["payload"] {
                 if let unityMessage = payload as? Dictionary<String, Any> {
 //                    print(unityMessage["data"] ?? "")
-                    handleUnityMessage(message: unityMessage["data"] as? String ?? "")
+//                    handleUnityMessage(message: unityMessage["data"] as? String ?? "")
+
+                    let eventType = unityMessage["eventType"] as? String ?? ""
+                    switch (eventType) {
+                        case "OnUnityViewCreated":
+                            onUnityViewCreated(message: unityMessage["data"] as? String ?? "")
+                            break
+                        case "OnUnitySceneLoaded":
+                            onUnitySceneLoaded(message: unityMessage["data"] as? String ?? "")
+                            break
+                        case "OnUnityMessage":
+                            onUnityMessage(message: unityMessage["data"] as? String ?? "")
+                            break
+                        default:
+                            break
+                    }
+                    
                 }
             }
         } else {
