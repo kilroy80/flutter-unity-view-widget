@@ -10,5 +10,3 @@ export 'src/facade_widget.dart'
 export 'src/helpers/events.dart';
 export 'src/helpers/misc.dart';
 export 'src/helpers/types.dart';
-
-export 'src/custom/method_utils.dart';
