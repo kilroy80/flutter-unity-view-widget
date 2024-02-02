@@ -9,9 +9,10 @@ public protocol ViewControllerDataDelegate: AnyObject {
 @objc
 open class NativeUnityViewController: UIViewController, ViewControllerDataDelegate {
     
-    public var placeHolerView: UIView!
-    public var contentsView: PassthroughView!
+    public var placeHolderView: UIView!
+    public var contentsView: PassThroughView!
 
+    public var isFullScreen: Bool = false
     var statusBarHidden: Bool = true
     
     open func initMessage(message: String) {
@@ -33,12 +34,12 @@ open class NativeUnityViewController: UIViewController, ViewControllerDataDelega
                                                object: nil)
         
         let window = UIApplication.shared.keyWindow!
-        contentsView = PassthroughView(frame: CGRect(x: window.frame.origin.x, y: window.frame.origin.y, width: window.frame.width, height: window.frame.height))
+        contentsView = PassThroughView(frame: CGRect(x: window.frame.origin.x, y: window.frame.origin.y, width: window.frame.width, height: window.frame.height))
         self.view.insertSubview(contentsView, at: 1)
         
-        placeHolerView = UIView(frame: CGRect(x: window.frame.origin.x, y: window.frame.origin.y, width: window.frame.width, height: window.frame.height))
-        placeHolerView.backgroundColor = .blue
-        self.view.insertSubview(placeHolerView, at: 2)
+        placeHolderView = UIView(frame: CGRect(x: window.frame.origin.x, y: window.frame.origin.y, width: window.frame.width, height: window.frame.height))
+        placeHolderView.backgroundColor = .blue
+        self.view.insertSubview(placeHolderView, at: 2)
         
         reattachUnityView()
     }
@@ -91,10 +92,12 @@ open class NativeUnityViewController: UIViewController, ViewControllerDataDelega
         self.view.insertSubview(view!, at: 0)
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            self.setStatusBarVisible(isHidden: false)
+            if (!self.isFullScreen) {
+                self.setStatusBarVisible(isHidden: false)
+            }
             
             self.contentsView.isHidden = false
-            self.placeHolerView.isHidden = true
+            self.placeHolderView.isHidden = true
         }
     }
     
@@ -147,7 +150,7 @@ extension Bundle {
     }
 }
 
-public class PassthroughView: UIView {
+public class PassThroughView: UIView {
     public override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
         let view = super.hitTest(point, with: event)
         return view == self ? nil : view
