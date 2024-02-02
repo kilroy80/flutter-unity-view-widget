@@ -38,7 +38,7 @@ public class SwiftFlutterUnityWidgetPlugin: NSObject, FlutterPlugin {
 
             weak var delegate: ViewControllerDataDelegate?
             delegate = nextVc
-            delegate?.sendInitData(data: "flutter -> native(ios) message \(data)")
+            delegate?.initMessage(message: "flutter -> native(ios) message \(data)")
 
             presentingVC.present(nextVc, animated: false)
         }

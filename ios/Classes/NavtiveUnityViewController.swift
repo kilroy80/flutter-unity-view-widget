@@ -2,11 +2,8 @@ import Foundation
 import UIKit
 
 public protocol ViewControllerDataDelegate: AnyObject {
-    func sendInitData(data: String)
-}
-
-public protocol AddContents: AnyObject {
-    func addContentsView()
+    func initMessage(message: String)
+    func handleUnityMessage(message: String)
 }
 
 @objc
@@ -14,15 +11,15 @@ open class NativeUnityViewController: UIViewController, ViewControllerDataDelega
     
     public var placeHolerView: UIView!
     public var contentsView: PassthroughView!
-//    var button: UIButton!
-    
+
     var statusBarHidden: Bool = true
     
-    open func sendInitData(data: String) {
-        print(data)
+    open func initMessage(message: String) {
+        print(message)
     }
     
-    open func addContentsView() {
+    open func handleUnityMessage(message: String) {
+        print(message)
     }
     
     open override func viewDidLoad() {
@@ -54,7 +51,8 @@ open class NativeUnityViewController: UIViewController, ViewControllerDataDelega
         if let dict = notification.userInfo as? Dictionary<String, Any> {
             if let payload = dict["payload"] {
                 if let unityMessage = payload as? Dictionary<String, Any> {
-                    print(unityMessage["data"] ?? "")
+//                    print(unityMessage["data"] ?? "")
+                    handleUnityMessage(message: unityMessage["data"] as? String ?? "")
                 }
             }
         } else {
@@ -62,17 +60,11 @@ open class NativeUnityViewController: UIViewController, ViewControllerDataDelega
         }
     }
     
-    public func close() {
+    public func closeViewController() {
         NotificationCenter.default.removeObserver(self)
         GetUnityPlayerUtils().unload()
         self.dismiss(animated: false)
     }
-    
-//     func dismiss(viewController: UIViewController) {
-//         if presentedViewController == viewController {
-//             dismiss(animated: true)
-//         }
-//     }
     
     func reattachUnityView() {
         let unityView = GetUnityPlayerUtils().ufw?.appController()?.rootView
@@ -119,9 +111,15 @@ open class NativeUnityViewController: UIViewController, ViewControllerDataDelega
     }
     
     // like flutter message
-    open func sendMessage(message: String?) {
+    open func sendMessage(unityMessage: String?) {
         UnityPlayerUtils().postMessageToUnity(
-            gameObject: "UnityMessageManager", unityMethodName: "onFlutterMessage", unityMessage: message
+            gameObject: "UnityMessageManager", unityMethodName: "onFlutterMessage", unityMessage: unityMessage
+        )
+    }
+    
+    open func sendMessage(gameObject: String?, unityMethodName: String?, unityMessage: String?) {
+        UnityPlayerUtils().postMessageToUnity(
+            gameObject: gameObject, unityMethodName: unityMethodName, unityMessage: unityMessage
         )
     }
 }
