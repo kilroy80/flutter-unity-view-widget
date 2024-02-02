@@ -33,12 +33,12 @@ public class SwiftFlutterUnityWidgetPlugin: NSObject, FlutterPlugin {
                 return
             }
             
-            let nextVc = STUnityViewController()
+            let nextVc = NativeUnityViewController()
             nextVc.modalPresentationStyle = UIModalPresentationStyle.fullScreen
 
             weak var delegate: ViewControllerDataDelegate?
             delegate = nextVc
-            delegate?.sendData(data: "flutter -> native(ios) message \(data)")
+            delegate?.sendInitData(data: "flutter -> native(ios) message \(data)")
 
             presentingVC.present(nextVc, animated: false)
         }
