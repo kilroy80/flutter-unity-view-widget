@@ -48,14 +48,14 @@ open class NativeUnityViewController: UIViewController, ViewControllerDataDelega
         self.view.insertSubview(contentsView, at: 1)
         
         placeHolderView = UIView(frame: CGRect(x: window.frame.origin.x, y: window.frame.origin.y, width: window.frame.width, height: window.frame.height))
-        placeHolderView.backgroundColor = .blue
+        placeHolderView.backgroundColor = isDarkMode ? UIColor(hexCode: "#d3d3d3") : .white
         self.view.insertSubview(placeHolderView, at: 2)
         
         reattachUnityView()
     }
     
     deinit {
-        NotificationCenter.default.removeObserver(self)
+       NotificationCenter.default.removeObserver(self)
     }
 
     @objc open func handleMassage(_ notification: NSNotification) {
@@ -88,14 +88,18 @@ open class NativeUnityViewController: UIViewController, ViewControllerDataDelega
     }
     
     public func closeViewController() {
+        /// TODO : Check memory leak.
+//        GetUnityPlayerUtils().unload()
+        GetUnityPlayerUtils().pause()
+        
         NotificationCenter.default.removeObserver(self)
-        GetUnityPlayerUtils().unload()
         self.dismiss(animated: false)
     }
     
     func reattachUnityView() {
         let unityView = GetUnityPlayerUtils().ufw?.appController()?.rootView
         if (unityView == nil) {
+//            print("new Unity")
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 GetUnityPlayerUtils().createPlayer(completed: { [self] (view: UIView?) in
                     if (view != nil) {
@@ -104,6 +108,7 @@ open class NativeUnityViewController: UIViewController, ViewControllerDataDelega
                 })
             }
         } else {
+//            print("re Unity")
             showUnityView(view: unityView!)
         }
 
@@ -154,17 +159,39 @@ open class NativeUnityViewController: UIViewController, ViewControllerDataDelega
 }
 
 extension UIViewController {
-    func back() {
-        if presentingViewController != nil {
-            dismiss(animated: true, completion: nil) // present
-        } else {
-            navigationController?.popViewController(animated: true) // push
+    var isDarkMode: Bool {
+        if #available(iOS 13.0, *) {
+            return self.traitCollection.userInterfaceStyle == .dark
+        }
+        else {
+            return false
         }
     }
     
     func statusBarHeight() -> CGFloat {
         let statusBarSize = UIApplication.shared.statusBarFrame.size
         return Swift.min(statusBarSize.width, statusBarSize.height)
+    }
+}
+
+extension UIColor {
+    
+    convenience init(hexCode: String, alpha: CGFloat = 1.0) {
+        var hexFormatted: String = hexCode.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines).uppercased()
+        
+        if hexFormatted.hasPrefix("#") {
+            hexFormatted = String(hexFormatted.dropFirst())
+        }
+        
+        assert(hexFormatted.count == 6, "Invalid hex code used.")
+        
+        var rgbValue: UInt64 = 0
+        Scanner(string: hexFormatted).scanHexInt64(&rgbValue)
+        
+        self.init(red: CGFloat((rgbValue & 0xFF0000) >> 16) / 255.0,
+                  green: CGFloat((rgbValue & 0x00FF00) >> 8) / 255.0,
+                  blue: CGFloat(rgbValue & 0x0000FF) / 255.0,
+                  alpha: alpha)
     }
 }
 
