@@ -54,7 +54,7 @@ func UnityFrameworkLoad() -> UnityFramework? {
 public var globalControllers: Array<FLTUnityWidgetController> = [FLTUnityWidgetController]()
 private var unityPlayerUtils: UnityPlayerUtils? = nil
 
-func GetUnityPlayerUtils() -> UnityPlayerUtils {
+public func GetUnityPlayerUtils() -> UnityPlayerUtils {
     if unityPlayerUtils == nil {
         unityPlayerUtils = UnityPlayerUtils()
     }
