@@ -6,8 +6,6 @@ public class SwiftFlutterUnityWidgetPlugin: NSObject, FlutterPlugin {
     private static var unityEventHandler: HandleEventSink?
     private static var unityEventChannel: FlutterEventChannel?
 
-    private static var customMethodChannel: FlutterMethodChannel?
-    
     public static func register(with registrar: FlutterPluginRegistrar) {
         methodChannel = FlutterMethodChannel(name: "plugin.xraph.com/base_channel", binaryMessenger: registrar.messenger())
         unityEventChannel = FlutterEventChannel.init(name: "plugin.xraph.com/stream_channel", binaryMessenger: registrar.messenger())
@@ -15,35 +13,11 @@ public class SwiftFlutterUnityWidgetPlugin: NSObject, FlutterPlugin {
         
         methodChannel?.setMethodCallHandler(methodHandler)
         unityEventChannel?.setStreamHandler(unityEventHandler)
-
-        customMethodChannel = FlutterMethodChannel(name: "plugin.xraph.com/custom_channel", binaryMessenger: registrar.messenger())
-        customMethodChannel?.setMethodCallHandler(customMethodHandler)
         
         let fuwFactory = FLTUnityWidgetFactory(registrar: registrar)
         registrar.register(fuwFactory, withId: "plugin.xraph.com/unity_view", gestureRecognizersBlockingPolicy: FlutterPlatformViewGestureRecognizersBlockingPolicyWaitUntilTouchesEnded)
     }
 
-    private static func customMethodHandler(_ call: FlutterMethodCall, result: FlutterResult) {
-        let arguments = call.arguments as? NSDictionary
-        let data = arguments?["data"] as? String ?? ""
-
-        if call.method == "unity#vc#create" {
-            guard let presentingVC = UIApplication.shared.topViewController else {
-                print("presentingVC nil")
-                return
-            }
-            
-            let nextVc = NativeUnityViewController()
-            nextVc.modalPresentationStyle = UIModalPresentationStyle.fullScreen
-
-            weak var delegate: ViewControllerDataDelegate?
-            delegate = nextVc
-            delegate?.initMessage(message: "flutter -> native(ios) message \(data)")
-
-            presentingVC.present(nextVc, animated: false)
-        }
-    }
-    
     private static func methodHandler(_ call: FlutterMethodCall, result: FlutterResult) {
         
         let arguments = call.arguments as? NSDictionary

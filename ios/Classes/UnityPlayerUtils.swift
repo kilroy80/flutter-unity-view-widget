@@ -74,7 +74,7 @@ var sharedApplication: UIApplication?
 }
 
 @objc public class UnityPlayerUtils: UIResponder, UIApplicationDelegate, UnityFrameworkListener {
-    var ufw: UnityFramework!
+    open var ufw: UnityFramework!
     private var _isUnityPaused = false
     private var _isUnityReady = false
     private var _isUnityLoaded = false
@@ -114,7 +114,7 @@ var sharedApplication: UIApplication?
     }
 
     // Create new unity player
-    func createPlayer(completed: @escaping (_ view: UIView?) -> Void) {
+    open func createPlayer(completed: @escaping (_ view: UIView?) -> Void) {
         if self.unityIsInitiallized() && self._isUnityReady {
             completed(controller?.rootView)
             return
@@ -215,19 +215,19 @@ var sharedApplication: UIApplication?
         }
     }
     // Pause unity player
-    func pause() {
+    open func pause() {
         self.ufw?.pause(true)
         self._isUnityPaused = true
     }
 
     // Resume unity player
-    func resume() {
+    open func resume() {
         self.ufw?.pause(false)
         self._isUnityPaused = false
     }
 
     // Unoad unity player
-    func unload() {
+    open func unload() {
         self.ufw?.unloadApplication()
     }
 
@@ -251,7 +251,7 @@ var sharedApplication: UIApplication?
     }
 
     // Post message to unity
-    func postMessageToUnity(gameObject: String?, unityMethodName: String?, unityMessage: String?) {
+    open func postMessageToUnity(gameObject: String?, unityMethodName: String?, unityMessage: String?) {
         if self.unityIsInitiallized() {
             self.ufw?.sendMessageToGO(withName: gameObject, functionName: unityMethodName, message: unityMessage)
         }
@@ -260,7 +260,7 @@ var sharedApplication: UIApplication?
     /// Handle incoming unity messages looping through all controllers and passing payload to
     /// the controller handler methods
     @objc
-    func unityMessageHandlers(_ message: UnsafePointer<Int8>?) {
+    open func unityMessageHandlers(_ message: UnsafePointer<Int8>?) {
         if let strMsg = message {
             let msg = String(utf8String: strMsg) ?? ""
             notifyFlutter(
@@ -275,7 +275,7 @@ var sharedApplication: UIApplication?
         }
     }
 
-    func unitySceneLoadedHandlers(name: UnsafePointer<Int8>?, buildIndex: UnsafePointer<Int32>?, isLoaded: UnsafePointer<Bool>?, isValid: UnsafePointer<Bool>?) {
+    open func unitySceneLoadedHandlers(name: UnsafePointer<Int8>?, buildIndex: UnsafePointer<Int32>?, isLoaded: UnsafePointer<Bool>?, isValid: UnsafePointer<Bool>?) {
         if let sceneName = name,
            let bIndex = buildIndex,
            let loaded = isLoaded,
