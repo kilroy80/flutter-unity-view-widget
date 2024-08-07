@@ -122,7 +122,7 @@ class FlutterUnityWidgetPlugin:
      */
     @SuppressLint("NewApi")
     private class ProxyLifecycleProvider(activity: Activity) : Application.ActivityLifecycleCallbacks, LifecycleOwner, LifecycleProvider {
-        private val _lifecycle = LifecycleRegistry(this)
+        private val lifecycle = LifecycleRegistry(this)
         private var registrarActivityHashCode: Int = 0
 
         init {
@@ -136,7 +136,7 @@ class FlutterUnityWidgetPlugin:
             if (activity.hashCode() != registrarActivityHashCode) {
                 return
             }
-            _lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
+            lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
         }
 
         override fun onActivityStarted(activity: Activity) {
@@ -144,7 +144,7 @@ class FlutterUnityWidgetPlugin:
             if (activity.hashCode() != registrarActivityHashCode) {
                 return
             }
-            _lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_START)
+            lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_START)
         }
 
         override fun onActivityResumed(activity: Activity) {
@@ -152,7 +152,7 @@ class FlutterUnityWidgetPlugin:
             if (activity.hashCode() != registrarActivityHashCode) {
                 return
             }
-            _lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
+            lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
         }
 
         override fun onActivityPaused(activity: Activity) {
@@ -160,7 +160,7 @@ class FlutterUnityWidgetPlugin:
             if (activity.hashCode() != registrarActivityHashCode) {
                 return
             }
-            _lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
+            lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
         }
 
         override fun onActivityStopped(activity: Activity) {
@@ -168,7 +168,7 @@ class FlutterUnityWidgetPlugin:
             if (activity.hashCode() != registrarActivityHashCode) {
                 return
             }
-            _lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_STOP)
+            lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_STOP)
         }
 
         override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {
@@ -182,11 +182,11 @@ class FlutterUnityWidgetPlugin:
             }
 
             activity.application.unregisterActivityLifecycleCallbacks(this)
-            _lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
+            lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
         }
 
         override fun getLifecycle(): Lifecycle {
-            return _lifecycle as Lifecycle
+            return lifecycle
         }
     }
 
