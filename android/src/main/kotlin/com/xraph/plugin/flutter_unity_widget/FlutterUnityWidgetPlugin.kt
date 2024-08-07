@@ -122,7 +122,7 @@ class FlutterUnityWidgetPlugin:
      */
     @SuppressLint("NewApi")
     private class ProxyLifecycleProvider(activity: Activity) : Application.ActivityLifecycleCallbacks, LifecycleOwner, LifecycleProvider {
-        private val lifecycle = LifecycleRegistry(this)
+        val lifecycle = LifecycleRegistry(this)
         private var registrarActivityHashCode: Int = 0
 
         init {
