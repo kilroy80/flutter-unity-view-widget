@@ -186,7 +186,7 @@ class FlutterUnityWidgetPlugin:
         }
 
         override fun getLifecycle(): Lifecycle {
-            return _lifecycle
+            return _lifecycle as Lifecycle
         }
     }
 
