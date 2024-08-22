@@ -99,7 +99,7 @@ var sharedApplication: UIApplication?
             controller = self.ufw?.appController()
             controller?.unityMessageHandler = self.unityMessageHandlers
             controller?.unitySceneLoadedHandler = self.unitySceneLoadedHandlers
-            self.ufw?.appController()?.window?.windowLevel = UIWindow.Level(UIWindow.Level.normal.rawValue - 1)
+//             self.ufw?.appController()?.window?.windowLevel = UIWindow.Level(UIWindow.Level.normal.rawValue - 1)
         }
         _isUnityLoaded = true
     }
@@ -216,18 +216,24 @@ var sharedApplication: UIApplication?
     }
     // Pause unity player
     public func pause() {
+        self.ufw?.appController()?.window?.windowLevel = UIWindow.Level(UIWindow.Level.normal.rawValue - 1)
+
         self.ufw?.pause(true)
         self._isUnityPaused = true
     }
 
     // Resume unity player
     public func resume() {
+        self.ufw?.appController()?.window?.windowLevel = UIWindow.Level(UIWindow.Level.normal.rawValue)
+
         self.ufw?.pause(false)
         self._isUnityPaused = false
     }
 
     // Unoad unity player
     public func unload() {
+        self.ufw?.appController()?.window?.windowLevel = UIWindow.Level(UIWindow.Level.normal.rawValue - 1)
+
         self.ufw?.unloadApplication()
     }
 
