@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -8,13 +9,14 @@ import 'package:flutter/services.dart';
 import 'package:stream_transform/stream_transform.dart';
 
 import '../helpers/events.dart';
+import '../helpers/misc.dart';
 import '../helpers/types.dart';
-import 'flutter_unity_controller.dart';
 import 'unity_widget_platform.dart';
 import 'windows_unity_widget_view.dart';
 
 class MethodChannelUnityWidget extends UnityWidgetPlatform {
-  var _unityId = 0;
+  // Every method call passes the int unityId
+  late final Map<int, MethodChannel> _channels = {};
 
   /// Set [UnityWidgetFlutterPlatform] to use [AndroidViewSurface] to build the Google Maps widget.
   ///
@@ -26,28 +28,41 @@ class MethodChannelUnityWidget extends UnityWidgetPlatform {
   /// Defaults to false.
   bool useAndroidViewSurface = true;
 
-  MethodChannelUnityWidget() {
-    _handleInternalStreaming();
+  /// Accesses the MethodChannel associated to the passed unityId.
+  MethodChannel channel(int unityId) {
+    MethodChannel? channel = _channels[unityId];
+    if (channel == null) {
+      throw UnknownUnityIDError(unityId);
+    }
+    return channel;
+  }
+
+  MethodChannel ensureChannelInitialized(int unityId) {
+    MethodChannel? channel = _channels[unityId];
+    if (channel == null) {
+      channel = MethodChannel('plugin.xraph.com/unity_view_$unityId');
+
+      channel.setMethodCallHandler(
+          (MethodCall call) => _handleMethodCall(call, unityId));
+      _channels[unityId] = channel;
+    }
+    return channel;
   }
 
   /// Initializes the platform interface with [id].
   ///
   /// This method is called when the plugin is first initialized.
   @override
-  Future<void> init(int unityId) async {
-    _unityId = unityId;
-    FlutterUnityController.instance.lastUnityId = unityId;
-    await FlutterUnityController.instance.init();
+  Future<void> init(int unityId) {
+    MethodChannel channel = ensureChannelInitialized(unityId);
+    return channel.invokeMethod<void>('unity#waitForUnity');
   }
 
   /// Dispose of the native resources.
   @override
-  void dispose({int? unityId}) {
+  Future<void> dispose({int? unityId}) async {
     try {
-      if (unityId != null) {
-        FlutterUnityController.instance.lastUnityId = unityId;
-        // _unityStreamController.close();
-      }
+      if (unityId != null) await channel(unityId).invokeMethod('unity#dispose');
     } catch (e) {
       // ignore
     }
@@ -58,70 +73,56 @@ class MethodChannelUnityWidget extends UnityWidgetPlatform {
   //
   // It is a `broadcast` because multiple controllers will connect to
   // different stream views of this Controller.
-  StreamController<UnityEvent> _unityStreamController =
+  final StreamController<UnityEvent> _unityStreamController =
       StreamController<UnityEvent>.broadcast();
 
   // Returns a filtered view of the events in the _controller, by unityId.
   Stream<UnityEvent> _events(int unityId) =>
       _unityStreamController.stream.where((event) => event.unityId == unityId);
 
-  Future<dynamic> _handleInternalStreaming() async {
-    if (_unityStreamController.isClosed) {
-      _unityStreamController = StreamController<UnityEvent>.broadcast();
+  Future<dynamic> _handleMethodCall(MethodCall call, int unityId) async {
+    switch (call.method) {
+      case "events#onUnityMessage":
+        _unityStreamController.add(UnityMessageEvent(unityId, call.arguments));
+        break;
+      case "events#onUnityUnloaded":
+        _unityStreamController.add(UnityLoadedEvent(unityId, call.arguments));
+        break;
+      case "events#onUnitySceneLoaded":
+        _unityStreamController.add(UnitySceneLoadedEvent(
+            unityId, SceneLoaded.fromMap(call.arguments)));
+        break;
+      case "events#onUnityCreated":
+        _unityStreamController.add(UnityCreatedEvent(unityId, call.arguments));
+        break;
+      default:
+        throw UnimplementedError("Unimplemented ${call.method} method");
     }
-    FlutterUnityController.instance.stream.listen((event) {
-      switch (event.eventType) {
-        case UnityEventTypes.OnUnityViewCreated:
-          _unityStreamController.add(UnityCreatedEvent(0, event.data));
-          break;
-        case UnityEventTypes.OnUnityPlayerUnloaded:
-          _unityStreamController.add(UnityLoadedEvent(0, event.data));
-          break;
-        case UnityEventTypes.OnUnityMessage:
-          _unityStreamController.add(UnityMessageEvent(_unityId, event.data));
-          break;
-        case UnityEventTypes.OnUnitySceneLoaded:
-          _unityStreamController
-              .add(UnitySceneLoadedEvent(0, SceneLoaded.fromMap(event.data)));
-          break;
-        case UnityEventTypes.OnUnityPlayerReInitialize:
-        case UnityEventTypes.OnViewReattached:
-        case UnityEventTypes.OnUnityPlayerCreated:
-        case UnityEventTypes.OnUnityPlayerQuited:
-          // TODO: Handle this case.
-          break;
-      }
-    });
   }
 
   @override
   Future<bool?> isPaused({required int unityId}) async {
-    FlutterUnityController.instance.lastUnityId = unityId;
-    return await FlutterUnityController.instance.isPaused();
+    return await channel(unityId).invokeMethod('unity#isPaused');
   }
 
   @override
   Future<bool?> isReady({required int unityId}) async {
-    FlutterUnityController.instance.lastUnityId = unityId;
-    return await FlutterUnityController.instance.isReady();
+    return await channel(unityId).invokeMethod('unity#isReady');
   }
 
   @override
   Future<bool?> isLoaded({required int unityId}) async {
-    FlutterUnityController.instance.lastUnityId = unityId;
-    return await FlutterUnityController.instance.isLoaded();
+    return await channel(unityId).invokeMethod('unity#isLoaded');
   }
 
   @override
   Future<bool?> inBackground({required int unityId}) async {
-    FlutterUnityController.instance.lastUnityId = unityId;
-    return await FlutterUnityController.instance.inBackground();
+    return await channel(unityId).invokeMethod('unity#inBackground');
   }
 
   @override
   Future<bool?> createUnityPlayer({required int unityId}) async {
-    FlutterUnityController.instance.lastUnityId = unityId;
-    return await FlutterUnityController.instance.create();
+    return await channel(unityId).invokeMethod('unity#createPlayer');
   }
 
   @override
@@ -250,9 +251,11 @@ class MethodChannelUnityWidget extends UnityWidgetPlatform {
     required String methodName,
     required String message,
   }) async {
-    FlutterUnityController.instance.lastUnityId = unityId;
-    return await FlutterUnityController.instance
-        .postMessage(gameObject, methodName, message);
+    await channel(unityId).invokeMethod('unity#postMessage', <String, dynamic>{
+      'gameObject': gameObject,
+      'methodName': methodName,
+      'message': message,
+    });
   }
 
   @override
@@ -262,38 +265,35 @@ class MethodChannelUnityWidget extends UnityWidgetPlatform {
     required String methodName,
     required Map message,
   }) async {
-    FlutterUnityController.instance.lastUnityId = unityId;
-    return await FlutterUnityController.instance.postJsonMessage(
-        gameObject, methodName, message as Map<String, dynamic>);
+    await channel(unityId).invokeMethod('unity#postMessage', <String, dynamic>{
+      'gameObject': gameObject,
+      'methodName': methodName,
+      'message': json.encode(message),
+    });
   }
 
   @override
   Future<void> pausePlayer({required int unityId}) async {
-    FlutterUnityController.instance.lastUnityId = unityId;
-    await FlutterUnityController.instance.pause();
+    await channel(unityId).invokeMethod('unity#pausePlayer');
   }
 
   @override
   Future<void> resumePlayer({required int unityId}) async {
-    FlutterUnityController.instance.lastUnityId = unityId;
-    return await FlutterUnityController.instance.resume();
+    await channel(unityId).invokeMethod('unity#resumePlayer');
   }
 
   @override
   Future<void> openInNativeProcess({required int unityId}) async {
-    FlutterUnityController.instance.lastUnityId = unityId;
-    return await FlutterUnityController.instance.openInNativeProcess();
+    await channel(unityId).invokeMethod('unity#openInNativeProcess');
   }
 
   @override
   Future<void> unloadPlayer({required int unityId}) async {
-    FlutterUnityController.instance.lastUnityId = unityId;
-    return await FlutterUnityController.instance.unload();
+    await channel(unityId).invokeMethod('unity#unloadPlayer');
   }
 
   @override
   Future<void> quitPlayer({required int unityId}) async {
-    FlutterUnityController.instance.lastUnityId = unityId;
-    return await FlutterUnityController.instance.quit();
+    await channel(unityId).invokeMethod('unity#quitPlayer');
   }
 }

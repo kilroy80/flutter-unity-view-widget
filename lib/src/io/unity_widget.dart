@@ -53,7 +53,7 @@ typedef MobileUnityWidgetState = _UnityWidgetState;
 class UnityWidget extends StatefulWidget {
   UnityWidget({
     Key? key,
-    this.onUnityCreated,
+    required this.onUnityCreated,
     this.onUnityMessage,
     this.fullscreen = false,
     this.enablePlaceholder = false,
@@ -73,7 +73,7 @@ class UnityWidget extends StatefulWidget {
   });
 
   ///Event fires when the unity player is created.
-  final UnityCreatedCallback? onUnityCreated;
+  final UnityCreatedCallback onUnityCreated;
 
   /// WebGL url source.
   final String? webUrl;
@@ -190,10 +190,7 @@ class _UnityWidgetState extends State<UnityWidget> {
   Future<void> _onPlatformViewCreated(int id) async {
     final controller = await MobileUnityWidgetController.init(id, this);
     _controller = controller;
-
-    if (widget.onUnityCreated != null) {
-      widget.onUnityCreated!(controller);
-    }
+    widget.onUnityCreated(controller);
 
     if (widget.printSetupLog) {
       log('*********************************************');
