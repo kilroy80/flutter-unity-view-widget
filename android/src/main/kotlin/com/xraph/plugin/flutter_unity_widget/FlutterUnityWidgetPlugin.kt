@@ -29,7 +29,7 @@ class FlutterUnityWidgetPlugin : FlutterPlugin, ActivityAware {
                 .registerViewFactory(
                         VIEW_TYPE,
                         FlutterUnityWidgetFactory(
-//                                binding.binaryMessenger,
+                                binding.binaryMessenger,
                                 object : LifecycleProvider {
                                     override fun getLifecycle(): Lifecycle {
                                         return lifecycle!!
